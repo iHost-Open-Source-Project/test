@@ -1,0 +1,64 @@
+name: Update stable.json and DingTalk Notification
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  update_stable:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Fetch remote stable.json
+        run: |
+          REMOTE_URL="https://version.home-assistant.io/stable.json"
+          echo "Fetching stable.json from remote URL: $REMOTE_URL"
+          curl -sL "$REMOTE_URL" -o remote-stable.json
+          echo "Fetched remote file contents:"
+          cat remote-stable.json
+
+      - name: Update local stable.json homeassistant field
+        run: |
+          if [ ! -f stable.json ]; then
+            echo "Error: stable.json file does not exist!"
+            exit 1
+          fi
+          NEW_HOME=$(jq '.homeassistant' remote-stable.json)
+          jq --argjson newHome "$NEW_HOME" '.homeassistant = $newHome' stable.json > stable_new.json
+          mv stable_new.json stable.json
+          echo "Updated homeassistant field content:"
+          jq '.homeassistant' stable.json
+          rm -f remote-stable.json
+
+      - name: Commit and Push changes
+        id: commit_check
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            git add stable.json
+            git commit -m "Sync stable.json homeassistant core version"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+            echo "update=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes detected, no need to commit."
+            echo "update=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send DingTalk notification
+        if: ${{ steps.commit_check.outputs.update == 'true' }}
+        run: |
+          MESSAGE_TEXT="stable.json: homeassistant field has been updated"
+          PAYLOAD=$(jq -n --arg text "$MESSAGE_TEXT" '{
+            "msgtype": "text",
+            "text": {
+              "content": $text
+            }
+          }')
+          echo "Sending DingTalk notification: $MESSAGE_TEXT"
+          curl -s -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.DINGTALK_WEBHOOK }}"
