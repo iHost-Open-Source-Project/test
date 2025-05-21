@@ -1,1 +1,1 @@
-# test
+This is a test repository created to explore and experiment with various GitHub features, including but not limited to GitHub Actions workflows, automation, and CI/CD pipelines. It serves as a sandbox environment for learning, testing configurations, and validating behavior in a controlled setting.
