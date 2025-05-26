@@ -14,3 +14,4 @@ jobs:
         run: |
           echo "Listing /data:"
           ls -alh /data
+          ls -alh /
