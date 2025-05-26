@@ -10,14 +10,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Fetch remote stable.json
-        run: |
-          REMOTE_URL="https://version.home-assistant.io/stable.json"
-          echo "Fetching stable.json from remote URL: $REMOTE_URL"
-          curl -sL "$REMOTE_URL" -o remote-stable.json
-          echo "Fetched remote file contents:"
-          cat remote-stable.json
       - name: List /data contents
         run: |
           echo "Listing /data:"
